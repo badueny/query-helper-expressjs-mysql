@@ -2,7 +2,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../config/db');
-const { buildDynamicQueryWithCountSafe, buildUpdateQuerySafe, buildDeleteQuerySafe, buildInsertOneQuerySafe, buildInsertManyQuerySafe }
+const { listDataQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery }
       = require('../helpers/safeQueryBuilder');
 
 
@@ -14,7 +14,7 @@ router.post('/orders/insert', async (req, res) => {
   try {
     const { data } = req.body;
 
-    const { query, values } = buildInsertOneQuerySafe({
+    const { query, values } = insertOneQuery({
       table: 'orders',
       allowedTables,
       allowedColumns,
@@ -37,7 +37,7 @@ router.post('/orders/insert-many', async (req, res) => {
   try {
     const { rows } = req.body;
 
-    const { query, values } = buildInsertManyQuerySafe({
+    const { query, values } = insertManyQuery({
       table: 'orders',
       allowedTables,
       allowedColumns,
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
 
   try {
     const { dataQuery, dataValues, countQuery, countValues } =
-      buildDynamicQueryWithCountSafe({
+      listDataQuery({
         table: 'orders',
         allowedTables: ['orders','customers','regions'],
         allowedColumns: [
@@ -105,7 +105,7 @@ router.put('/:id', async (req,res)=>{
   const id = req.params.id;
   const { status, total } = req.body;
   try{
-    const { query, values } = buildUpdateQuerySafe({
+    const { query, values } = updateQuery({
       table:'orders',
       allowedTables:['orders'],
       allowedColumns:['status','total','id'],
@@ -121,7 +121,7 @@ router.put('/:id', async (req,res)=>{
 router.delete('/:id', async (req,res)=>{
   const id = req.params.id;
   try{
-    const { query, values } = buildDeleteQuerySafe({
+    const { query, values } = deleteQuery({
       table:'orders',
       allowedTables:['orders'],
       allowedColumns:['id'],
@@ -131,5 +131,26 @@ router.delete('/:id', async (req,res)=>{
     res.json({ affectedRows:r.affectedRows});
   }catch(e){res.status(400).json({error:e.message});}
 });
+
+/* COUNT */
+router.count('/:id', async (req,res)=>{
+  const id = req.params.id;
+  try{
+    const { query, values } = countQuery({
+      table: 'antrian',
+      allowedTables: ['antrian', 'loket'],
+      allowedColumns: ['user_id', 'loket_id', 'status', 'created_at'],
+      filters: [
+        { key: 'status', operator: '=', value: 'selesai' },
+        { key: 'created_at', operator: 'BETWEEN', value: ['2025-06-01', '2025-06-30'] }
+      ]
+    });
+
+    const [rows] = await db.execute(query, values);
+    return rows[0].total;
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+
 
 module.exports = router;

@@ -3,7 +3,7 @@
 
 ## 🧱 safeQueryBuilder
 
-**safeQueryBuilder** adalah helper Node.js modular untuk membangun query SQL secara **dinamis dan aman** di aplikasi Express + MySQL. Dirancang untuk mempermudah penggunaan `INSERT`, `SELECT`, `JOIN`, `GROUP BY`, `HAVING`, `UPDATE`, dan `DELETE` dengan **whitelist column/table** dan **prepared statements**.
+**safeQueryBuilder** adalah helper Node.js modular untuk membangun query SQL secara **dinamis dan aman** di aplikasi Express + MySQL. Dirancang untuk mempermudah penggunaan `INSERT`, `SELECT`, `JOIN`, `GROUP BY`, `HAVING`, `UPDATE`, `COUNT`, dan `DELETE` dengan **whitelist column/table** dan **prepared statements**.
 
 ---
 
@@ -38,19 +38,19 @@
 - Jika **dengan GROUP BY/HAVING**: bungkus subquery agar akurat
 
 ### ✅ UPDATE & DELETE Aman
-- `buildUpdateQuerySafe`: hanya kolom terdaftar yang boleh diubah
-- `buildDeleteQuerySafe`: wajib ada kondisi WHERE (anti truncate)
+- `updateQuery`: hanya kolom terdaftar yang boleh diubah
+- `deleteQuery`: wajib ada kondisi WHERE (anti truncate)
 
 ## ➕ Fitur INSERT
 
-### 🔹 buildInsertOneQuerySafe
+### 🔹 insertOneQuery
 Menyusun query `INSERT` 1 baris data dengan dukungan:
 
 - Validasi kolom (`allowedColumns`)
 - Nilai aman dengan `?`
 - ✅ **Opsional:** `ON DUPLICATE KEY UPDATE`
 
-### 🔹 buildInsertManyQuerySafe
+### 🔹 insertManyQuery
 Menyusun query `INSERT` banyak baris data dengan dukungan:
 
 - Validasi kolom (`allowedColumns`)
@@ -72,7 +72,7 @@ safeQueryBuilder/
 ├─ index.js           # File utama helper
 ├─ package.json       # Metadata module
 samples/
-├─ orders_route.txt   # Contoh route Express lengkap (INSERT/SELECT/UPDATE/DELETE)
+├─ orders_route.txt   # Contoh route Express lengkap (INSERT/SELECT/UPDATE/DELETE/COUNT)
 ├─ app.txt            # Contoh app.js
 ├─ db_config.txt      # Koneksi MySQL
 README.txt            # Panduan singkat
@@ -84,9 +84,9 @@ README.txt            # Panduan singkat
 Lihat folder `samples/` untuk implementasi nyata dalam Express.js.
 
 ```js
-const { buildDynamicQueryWithCountSafe,buildInsertOneQuerySafe, buildInsertManyQuerySafe } = require('./safeQueryBuilder');
+const { listDataQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('./safeQueryBuilder');
 
-const { dataQuery, dataValues } = buildDynamicQueryWithCountSafe({
+const { dataQuery, dataValues } = listDataQuery({
   table: 'orders',
   allowedTables: ['orders', 'customers'],
   allowedColumns: ['orders.id', 'customers.name AS customer_name'],
@@ -102,7 +102,7 @@ const { dataQuery, dataValues } = buildDynamicQueryWithCountSafe({
 });
 ```
 ```js
-const { query, values } = buildInsertOneQuerySafe({
+const { query, values } = insertOneQuery({
   table: 'orders',
   allowedTables: ['orders'],
   allowedColumns: ['customer_id', 'total', 'status'],
@@ -124,11 +124,11 @@ ON DUPLICATE KEY UPDATE total = VALUES(total), status = VALUES(status)
 
 ---
 
-### 🔹 buildInsertManyQuerySafe
+### 🔹 insertManyQuery
 Untuk menyisipkan banyak baris sekaligus:
 
 ```js
-const { query, values } = buildInsertManyQuerySafe({
+const { query, values } = insertManyQuery({
   table: 'orders',
   allowedTables: ['orders'],
   allowedColumns: ['customer_id', 'total', 'status'],
@@ -149,6 +149,6 @@ VALUES (?, ?, ?), (?, ?, ?)
 ---
 
 ## 👨‍💻 Author
-Dibuat oleh **Awenk** – Untuk komunitas developer Indonesia 🇮🇩
+Dibuat oleh **Awenk** – Untuk komunitas developer 🇮🇩
 
 Lisensi: [MIT](./LICENSE)

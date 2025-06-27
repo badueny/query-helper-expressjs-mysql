@@ -1,5 +1,6 @@
 /* safeQueryBuilder - dynamic, secure SQL builder */
-function buildDynamicQueryWithCountSafe({
+//buildDynamicQueryWithCountSafe
+function listDataQuery({
   table,
   allowedTables = [],
   allowedColumns = ['*'],
@@ -141,7 +142,8 @@ function buildDynamicQueryWithCountSafe({
 }
 
 /* ---------- UPDATE ---------- */
-function buildUpdateQuerySafe({
+//buildUpdateQuerySafe
+function updateQuery({
   table,
   allowedTables = [],
   allowedColumns = [],
@@ -173,7 +175,8 @@ function buildUpdateQuerySafe({
 }
 
 /* ---------- DELETE ---------- */
-function buildDeleteQuerySafe({
+//buildDeleteQuerySafe
+function deleteQuery({
   table,
   allowedTables = [],
   allowedColumns = [],
@@ -195,7 +198,8 @@ function buildDeleteQuerySafe({
 }
 
 /* ---------- INSERT with ON DUPLICATE KEY UPDATE ---------- */
-function buildInsertOneQuerySafe({
+//buildInsertOneQuerySafe
+function insertOneQuery({
   table,
   allowedTables = [],
   allowedColumns = [],
@@ -227,7 +231,8 @@ function buildInsertOneQuerySafe({
 }
 
 /* ---------- INSERT MULTIPLE ROWS ---------- */
-function buildInsertManyQuerySafe({
+//buildInsertManyQuerySafe
+function insertManyQuery({
   table,
   allowedTables = [],
   allowedColumns = [],
@@ -262,10 +267,99 @@ function buildInsertManyQuerySafe({
   return { query, values };
 }
 
+/*-----COUNT DATA--------*/
+//buildCountQuerySafe
+function countQuery({
+  table,
+  allowedTables,
+  allowedColumns,
+  joins = [],
+  filters = [],
+  groupBy = null,
+  having = [],
+}) {
+  if (!allowedTables.includes(table)) throw new Error("Table not allowed");
+
+  const whereClause = buildWhereClause(filters, allowedColumns);
+  const joinClause = buildJoinClause(joins, allowedTables);
+  const groupClause = groupBy ? `GROUP BY ${sanitizeColumn(groupBy, allowedColumns)}` : '';
+  const havingClause = buildHavingClause(having, allowedColumns);
+
+  const fullFrom = `FROM ${table} ${joinClause} ${whereClause} ${groupClause} ${havingClause}`.trim();
+
+  let query = '';
+  if (groupBy) {
+    // Bungkus dengan subquery jika ada GROUP BY
+    query = `SELECT COUNT(*) as total FROM (SELECT 1 ${fullFrom}) AS temp`;
+  } else {
+    // Hitung langsung
+    query = `SELECT COUNT(1) as total ${fullFrom}`;
+  }
+
+  const values = [...extractFilterValues(filters), ...extractFilterValues(having)];
+  return { query, values };
+}
+
+
+/*---General Query---*/
+function sanitizeColumn(column, allowedColumns) {
+  if (!allowedColumns.includes(column)) throw new Error("Column not allowed");
+  return column;
+}
+
+function extractFilterValues(filters) {
+  const values = [];
+  for (const f of filters) {
+    if (f.operator === 'BETWEEN' && Array.isArray(f.value)) {
+      values.push(f.value[0], f.value[1]);
+    } else if (f.operator === 'IN' && Array.isArray(f.value)) {
+      values.push(...f.value);
+    } else {
+      values.push(f.value);
+    }
+  }
+  return values;
+}
+
+function buildWhereClause(filters, allowedColumns) {
+  if (!filters.length) return '';
+  const clauses = filters.map(f => {
+    if (!allowedColumns.includes(f.key)) throw new Error("Column not allowed in WHERE");
+    if (f.operator === 'BETWEEN') return `${f.key} BETWEEN ? AND ?`;
+    if (f.operator === 'IN') return `${f.key} IN (${f.value.map(() => '?').join(',')})`;
+    if (f.operator === 'LIKE') return `${f.key} LIKE ?`;
+    if (f.operator === 'OR LIKE') return `${f.key} LIKE ?`; // treated same here
+    return `${f.key} ${f.operator} ?`;
+  });
+  return 'WHERE ' + clauses.join(' AND ');
+}
+
+function buildJoinClause(joins, allowedTables) {
+  return joins.map(join => {
+    if (!allowedTables.includes(join.table)) throw new Error("Join table not allowed");
+    return `${join.type || 'INNER'} JOIN ${join.table} ON ${join.on}`;
+  }).join(' ');
+}
+
+function buildHavingClause(having, allowedColumns) {
+  if (!having.length) return '';
+  const clauses = having.map(h => {
+    if (!allowedColumns.includes(h.key)) throw new Error("Column not allowed in HAVING");
+    if (h.operator === 'BETWEEN') return `${h.key} BETWEEN ? AND ?`;
+    if (h.operator === 'IN') return `${h.key} IN (${h.value.map(() => '?').join(',')})`;
+    return `${h.key} ${h.operator} ?`;
+  });
+  return 'HAVING ' + clauses.join(' AND ');
+}
+
+
+
+
 module.exports = {
-  buildDynamicQueryWithCountSafe,
-  buildUpdateQuerySafe,
-  buildDeleteQuerySafe,
-  buildInsertOneQuerySafe,
-  buildInsertManyQuerySafe
+  listDataQuery,
+  updateQuery,
+  deleteQuery,
+  insertOneQuery,
+  insertManyQuery,
+  countQuery
 };
