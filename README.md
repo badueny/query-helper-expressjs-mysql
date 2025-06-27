@@ -37,6 +37,15 @@
 - Jika **tanpa GROUP BY**: gunakan `SELECT COUNT(1)` langsung (lebih cepat)
 - Jika **dengan GROUP BY/HAVING**: bungkus subquery agar akurat
 
+### ✅ Datatables Server Side
+- SQL Injection prevention via allowedColumns, allowedTables
+- Mendukung LIKE, IN, BETWEEN, ORDER, LIMIT
+- Bisa digunakan untuk semua tabel: tinggal ganti nama tabel & kolom
+- hasilnya
+  - data: hasil data sesuai limit, order, filter
+  - recordsTotal: total data sebelum filter
+  - recordsFiltered: total data setelah filter
+
 ### ✅ UPDATE & DELETE Aman
 - `updateQuery`: hanya kolom terdaftar yang boleh diubah
 - `deleteQuery`: wajib ada kondisi WHERE (anti truncate)
@@ -84,7 +93,7 @@ README.txt            # Panduan singkat
 Lihat folder `samples/` untuk implementasi nyata dalam Express.js.
 
 ```js
-const { listDataQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('./safeQueryBuilder');
+const { listDataQuery, listDatatableQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('../helpers/safeQueryBuilder');
 
 const { dataQuery, dataValues } = listDataQuery({
   table: 'orders',
@@ -101,6 +110,7 @@ const { dataQuery, dataValues } = listDataQuery({
   offset: 0
 });
 ```
+
 ```js
 const { query, values } = insertOneQuery({
   table: 'orders',

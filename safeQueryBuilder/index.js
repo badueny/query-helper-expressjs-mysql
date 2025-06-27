@@ -141,6 +141,84 @@ function listDataQuery({
   return { dataQuery, dataValues, countQuery, countValues };
 }
 
+/*---DataTables Server Side---*/
+async function listDatatableQuery({
+  req,
+  db,
+  table,
+  allowedTables,
+  allowedColumns,
+  joins = [],
+  groupBy = null,
+  customFilters = [],
+  extraWhere = [],
+  draw = 0,
+  start = 0,
+  length = 10,
+  search,
+  orders='',
+  colOrder=''
+}) {  
+
+  // ⬇️ Build filter dari global search
+  const searchFilters = [];
+  if (search) {
+    for (const col of allowedColumns) {
+      searchFilters.push({ key: col, operator: 'LIKE', value: `%${search}%` });
+    }
+  }
+
+  const filterClause = searchFilters.length
+    ? [{ or: searchFilters }]
+    : [];
+
+  // ⬇️ Build order
+  const order = orders!='' ? { column: colOrder, dir: orders } : [];
+
+  // ⬇️ Hitung total sebelum filter
+  const totalQuery = buildCountQuerySafe({
+    table,
+    allowedTables,
+    allowedColumns,
+    joins,
+  });
+  const [totalResult] = await db.query(totalQuery.query, totalQuery.values);
+  const recordsTotal = totalResult[0]?.total || 0;
+
+  // ⬇️ Hitung total setelah filter
+  const filteredQuery = buildCountQuerySafe({
+    table,
+    allowedTables,
+    allowedColumns,
+    joins,
+    filters: filterClause.concat(extraWhere || []),
+    groupBy,
+  });
+  const [filteredResult] = await db.query(filteredQuery.query, filteredQuery.values);
+  const recordsFiltered = filteredResult[0]?.total || 0;
+
+  // ⬇️ Ambil data
+  const dataQuery = selectQuery({
+    table,
+    allowedTables,
+    allowedColumns,
+    joins,
+    filters: filterClause.concat(extraWhere || []),
+    groupBy,
+    orderBy: order,
+    limit: length,
+    offset: start,
+  });
+  const [rows] = await db.query(dataQuery.query, dataQuery.values);
+
+  return {
+    draw,
+    recordsTotal,
+    recordsFiltered,
+    data: rows,
+  };
+}
+
 /* ---------- UPDATE ---------- */
 //buildUpdateQuerySafe
 function updateQuery({
@@ -352,14 +430,81 @@ function buildHavingClause(having, allowedColumns) {
   return 'HAVING ' + clauses.join(' AND ');
 }
 
+function buildCountQuerySafe({
+  table,
+  allowedTables,
+  allowedColumns,
+  joins = [],
+  filters = [],
+  groupBy = null,
+  having = [],
+}) {
+  if (!allowedTables.includes(table)) throw new Error("Table not allowed");
+
+  const whereClause = buildWhereClause(filters, allowedColumns);
+  const joinClause = buildJoinClause(joins, allowedTables);
+  const groupClause = groupBy ? `GROUP BY ${sanitizeColumn(groupBy, allowedColumns)}` : '';
+  const havingClause = buildHavingClause(having, allowedColumns);
+
+  const fullFrom = `FROM ${table} ${joinClause} ${whereClause} ${groupClause} ${havingClause}`.trim();
+
+  let query = '';
+  if (groupBy) {
+    query = `SELECT COUNT(*) as total FROM (SELECT 1 ${fullFrom}) AS temp`;
+  } else {
+    query = `SELECT COUNT(1) as total ${fullFrom}`;
+  }
+
+  const values = [...extractFilterValues(filters), ...extractFilterValues(having)];
+  return { query, values };
+}
+
+
+function selectQuery({
+  table,
+  allowedTables,
+  allowedColumns,
+  columns = ['*'],
+  filters = [],
+  joins = [],
+  groupBy = null,
+  having = [],
+  orderBy = [],
+  limit = 0,
+  offset = 0
+}) {
+  if (!allowedTables.includes(table)) throw new Error("Table not allowed");
+
+  const colList = columns.includes('*')
+    ? '*'
+    : columns.map(c => sanitizeColumn(c, allowedColumns)).join(', ');
+
+  const whereClause = buildWhereClause(filters, allowedColumns);
+  const joinClause = buildJoinClause(joins, allowedTables);
+  const groupClause = groupBy ? `GROUP BY ${sanitizeColumn(groupBy, allowedColumns)}` : '';
+  const havingClause = buildHavingClause(having, allowedColumns);
+  const orderClause = orderBy.length
+    ? 'ORDER BY ' + orderBy.map(o => `${sanitizeColumn(o.column, allowedColumns)} ${o.dir}`).join(', ')
+    : '';
+  const limitClause = limit ? `LIMIT ${offset || 0}, ${limit}` : '';
+
+  const query = `SELECT ${colList} FROM ${table} ${joinClause} ${whereClause} ${groupClause} ${havingClause} ${orderClause} ${limitClause}`.trim();
+  const values = [...extractFilterValues(filters), ...extractFilterValues(having)];
+
+  return { query, values };
+}
+
+
 
 
 
 module.exports = {
   listDataQuery,
+  listDatatableQuery,
   updateQuery,
   deleteQuery,
   insertOneQuery,
   insertManyQuery,
-  countQuery
+  countQuery,
+  selectQuery
 };
