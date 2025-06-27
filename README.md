@@ -42,9 +42,9 @@
 - Mendukung LIKE, IN, BETWEEN, ORDER, LIMIT
 - Bisa digunakan untuk semua tabel: tinggal ganti nama tabel & kolom
 - hasilnya
-  - data: hasil data sesuai limit, order, filter
-  - recordsTotal: total data sebelum filter
-  - recordsFiltered: total data setelah filter
+  - `data`: hasil data sesuai limit, order, filter
+  - `recordsTotal`: total data sebelum filter
+  - `recordsFiltered`: total data setelah filter
 
 ### ✅ UPDATE & DELETE Aman
 - `updateQuery`: hanya kolom terdaftar yang boleh diubah
