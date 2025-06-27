@@ -143,7 +143,6 @@ function listDataQuery({
 
 /*---DataTables Server Side---*/
 async function listDatatableQuery({
-  req,
   db,
   table,
   allowedTables,

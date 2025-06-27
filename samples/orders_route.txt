@@ -113,7 +113,6 @@ router.post('/datatable', async (req, res) => {
   const search = req.body['search[value]'];
   const orders = req.body['order[0][dir]']=== 'asc' ? 'ASC' : 'DESC';
   const colOrder = req.body['order[0][column]'] ? parseInt(req.body['order[0][column]']) : null;
-
   */
 
   try {
@@ -143,12 +142,6 @@ router.post('/datatable', async (req, res) => {
   }
 });
 
-/*
-  const draw = parseInt(req.body.draw || 0);
-  const start = parseInt(req.body.start || 0);
-  const length = parseInt(req.body.length || 10);
-  const search = req.body.search?.value || '';
-*/
 
 /* PUT /orders/:id - update safely */
 router.put('/:id', async (req,res)=>{
