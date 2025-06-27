@@ -130,7 +130,7 @@ WHERE 1=1
 LIMIT 10 OFFSET 0
 ```
 
-### 🔹 insertOneyQuery
+### 🔹 insertOneQuery
 Untuk menyisipkan 1 baris data:
 
 ```js
