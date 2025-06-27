@@ -1,0 +1,6 @@
+// app.js (sample)
+const express = require('express');
+const app = express();
+app.use(express.json());
+app.use('/orders', require('./routes/orders'));
+app.listen(3000, ()=> console.log('Server on http://localhost:3000'));

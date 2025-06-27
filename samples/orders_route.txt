@@ -1,0 +1,89 @@
+// routes/orders.js (sample)
+const express = require('express');
+const router  = express.Router();
+const db      = require('../config/db');
+const { buildDynamicQueryWithCountSafe, buildUpdateQuerySafe, buildDeleteQuerySafe }
+      = require('../helpers/safeQueryBuilder');
+
+/* GET /orders with JOIN multi-table, GROUP BY, HAVING, pagination */
+router.get('/', async (req, res) => {
+  const { dateFrom, dateTo, minTotal, page = 1, limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
+
+  try {
+    const { dataQuery, dataValues, countQuery, countValues } =
+      buildDynamicQueryWithCountSafe({
+        table: 'orders',
+        allowedTables: ['orders','customers','regions'],
+        allowedColumns: [
+          'orders.id','orders.customer_id','orders.total','orders.created_at',
+          'customers.name AS customer_name','regions.name AS region_name'
+        ],
+        columns: [
+          'orders.customer_id',
+          'regions.name AS region_name',
+          'COUNT(*) AS total_orders',
+          'SUM(orders.total) AS grand_total'
+        ],
+        joins: [
+          { table:'customers', on:'orders.customer_id = customers.id', type:'LEFT' },
+          { table:'regions',   on:'customers.region_id = regions.id',   type:'LEFT' }
+        ],
+        filters: {
+          'orders.created_at': { value:[dateFrom,dateTo], operator:'BETWEEN' },
+          'orders.total':      { value:minTotal,          operator:'>=' }
+        },
+        groupBy:['orders.customer_id','regions.name'],
+        having:{ 'grand_total': { value: 500000, operator:'>=' } },
+        orderBy:'grand_total',
+        orderDir:'DESC',
+        limit, offset
+      });
+
+    const [rows]      = await db.query(dataQuery,  dataValues);
+    const [countRows] = await db.query(countQuery, countValues);
+
+    res.json({
+      data: rows,
+      total: countRows[0].total,
+      pages: Math.ceil(countRows[0].total / limit),
+      currentPage: Number(page)
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/* PUT /orders/:id - update safely */
+router.put('/:id', async (req,res)=>{
+  const id = req.params.id;
+  const { status, total } = req.body;
+  try{
+    const { query, values } = buildUpdateQuerySafe({
+      table:'orders',
+      allowedTables:['orders'],
+      allowedColumns:['status','total','id'],
+      data:{ status, total },
+      where:{ id }
+    });
+    const [r] = await db.query(query,values);
+    res.json({ affectedRows:r.affectedRows});
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+/* DELETE /orders/:id */
+router.delete('/:id', async (req,res)=>{
+  const id = req.params.id;
+  try{
+    const { query, values } = buildDeleteQuerySafe({
+      table:'orders',
+      allowedTables:['orders'],
+      allowedColumns:['id'],
+      where:{ id }
+    });
+    const [r] = await db.query(query,values);
+    res.json({ affectedRows:r.affectedRows});
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+module.exports = router;
