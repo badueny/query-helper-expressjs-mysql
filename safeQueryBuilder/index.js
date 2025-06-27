@@ -76,8 +76,13 @@ function listDataQuery({
       case 'BETWEEN':
         if (!Array.isArray(value) || value.length !== 2)
           throw new Error(`BETWEEN requires [min,max] for ${key}`);
+        const [min, max] = value;
+        // Validasi: pastikan max >= min (khusus tipe Date)
+        if (new Date(min) > new Date(max)) {
+          throw new Error(`${key}: Nilai akhir tidak boleh lebih kecil dari nilai awal`);
+        }
         baseQuery += ` AND ${key} BETWEEN ? AND ?`;
-        values.push(value[0], value[1]);
+        values.push(min, max);
         break;
       default:
         throw new Error(`Unsupported operator "${operator}" for column "${key}"`);
