@@ -3,7 +3,7 @@
 
 ## 🧱 safeQueryBuilder
 
-**safeQueryBuilder** adalah helper Node.js modular untuk membangun query SQL secara **dinamis dan aman** di aplikasi Express + MySQL. Dirancang untuk mempermudah penggunaan `INSERT`, `SELECT`, `JOIN`, `GROUP BY`, `HAVING`, `UPDATE`, `COUNT`, dan `DELETE` dengan **whitelist column/table** dan **prepared statements**.
+**safeQueryBuilder** adalah helper Node.js modular untuk membangun query SQL secara **dinamis dan aman** di aplikasi Express + MySQL. Dirancang untuk mempermudah penggunaan `INSERT`, `SELECT`, `JOIN`, `GROUP BY`, `HAVING`, `UPDATE`, `COUNT`, `DELETE` dan `DataTables Server side` dengan **whitelist column/table** dan **prepared statements**.
 
 ---
 
@@ -40,7 +40,6 @@
 ### ✅ Datatables Server Side
 - SQL Injection prevention via allowedColumns, allowedTables
 - Mendukung LIKE, IN, BETWEEN, ORDER, LIMIT
-- Bisa digunakan untuk semua tabel: tinggal ganti nama tabel & kolom
 - hasilnya
   - `data`: hasil data sesuai limit, order, filter
   - `recordsTotal`: total data sebelum filter
