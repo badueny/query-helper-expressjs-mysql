@@ -92,7 +92,7 @@ Lihat folder `samples/` untuk implementasi nyata dalam Express.js.
 
 ### Penggunaan 
 1. buat folder helpers lalu copy paste folder safeQueryBuilder
-2. dibaris atas controller setelah  `const db = require('../config/db');`
+2. definisikan `safeQueryBuilder` dibaris atas controller setelah  `const db = require('../config/db');`
     ```js
     const { listDataQuery, listDatatableQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('../helpers/safeQueryBuilder');
     ```
