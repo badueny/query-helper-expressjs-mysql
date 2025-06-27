@@ -90,9 +90,18 @@ README.txt            # Panduan singkat
 ## 🚀 Contoh Penggunaan
 Lihat folder `samples/` untuk implementasi nyata dalam Express.js.
 
-```js
-const { listDataQuery, listDatatableQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('../helpers/safeQueryBuilder');
+### Penggunaan 
+1. buat folder helpers lalu copy paste folder safeQueryBuilder
+2. dibaris atas controller setelah  `const db = require('../config/db');`
+    ```js
+    const { listDataQuery, listDatatableQuery, updateQuery, deleteQuery, insertOneQuery, insertManyQuery, countQuery } = require('../helpers/safeQueryBuilder');
+    ```
 
+### listDataQuery
+Untuk get data dengan filter join dan paginasi:
+```js
+const dateFrom = '2025-01-01'; // red.body.dateFrom
+const dateTo = '2025-01-31'; // red.body.dateTo
 const { dataQuery, dataValues } = listDataQuery({
   table: 'orders',
   allowedTables: ['orders', 'customers'],
@@ -102,12 +111,27 @@ const { dataQuery, dataValues } = listDataQuery({
     { table: 'customers', on: 'orders.customer_id = customers.id' }
   ],
   filters: {
-    'orders.total': { value: 500000, operator: '>=' }
+    'orders.created_at': { value:[dateFrom,dateTo], operator:'BETWEEN' },
+    'orders.total': { value: 500000, operator: '>=' },
+    'orders.status':{ value: ['paid', 'pending'], operator: 'IN' }
   },
   limit: 10,
   offset: 0
 });
 ```
+Hasil SQL:
+```sql
+SELECT orders.id, orders.total, orders.status, orders.created_at
+FROM orders
+WHERE 1=1
+  AND orders.created_at BETWEEN '2025-01-01' AND '2025-01-31'
+  AND orders.total >= 500000
+  AND orders.status IN ('paid', 'pending')
+LIMIT 10 OFFSET 0
+```
+
+### 🔹 insertOneyQuery
+Untuk menyisipkan 1 baris data:
 
 ```js
 const { query, values } = insertOneQuery({
