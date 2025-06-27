@@ -194,8 +194,78 @@ function buildDeleteQuerySafe({
   return { query: `DELETE FROM ${table}${whereClause}`, values };
 }
 
+/* ---------- INSERT with ON DUPLICATE KEY UPDATE ---------- */
+function buildInsertOneQuerySafe({
+  table,
+  allowedTables = [],
+  allowedColumns = [],
+  data = {},
+  onDuplicate = [] // array of column names to update
+}) {
+  if (!allowedTables.includes(table)) throw new Error(`Table "${table}" is not allowed.`);
+
+  const keys = Object.keys(data).filter(key => allowedColumns.includes(key));
+  if (!keys.length) throw new Error('No valid fields to insert.');
+
+  const columns = keys.join(', ');
+  const placeholders = keys.map(() => '?').join(', ');
+  const values = keys.map(k => data[k]);
+
+  let query = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
+
+  if (onDuplicate.length) {
+    const updates = onDuplicate
+      .filter(key => allowedColumns.includes(key) && keys.includes(key))
+      .map(key => `${key} = VALUES(${key})`);
+
+    if (updates.length) {
+      query += ' ON DUPLICATE KEY UPDATE ' + updates.join(', ');
+    }
+  }
+
+  return { query, values };
+}
+
+/* ---------- INSERT MULTIPLE ROWS ---------- */
+function buildInsertManyQuerySafe({
+  table,
+  allowedTables = [],
+  allowedColumns = [],
+  rows = [] // array of objects
+}) {
+  if (!allowedTables.includes(table))
+    throw new Error(`Table "${table}" is not allowed.`);
+  if (!Array.isArray(rows) || rows.length === 0)
+    throw new Error('Rows must be a non‑empty array.');
+
+  // Use keys from first row as reference
+  const keys = Object.keys(rows[0]).filter(k => allowedColumns.includes(k));
+  if (!keys.length)
+    throw new Error('No valid columns to insert.');
+
+  // Validate all rows have same keys
+  for (const r of rows) {
+    const rowKeys = Object.keys(r).filter(k => allowedColumns.includes(k));
+    if (rowKeys.length !== keys.length ||
+        !rowKeys.every(k => keys.includes(k))) {
+      throw new Error('All rows must have the same set of allowed columns.');
+    }
+  }
+
+  const columns = keys.join(', ');
+  const placeholdersPerRow = '(' + keys.map(() => '?').join(', ') + ')';
+  const placeholders = rows.map(() => placeholdersPerRow).join(', ');
+  const values = [];
+  rows.forEach(r => keys.forEach(k => values.push(r[k])));
+
+  const query = `INSERT INTO ${table} (${columns}) VALUES ${placeholders}`;
+  return { query, values };
+}
+
 module.exports = {
   buildDynamicQueryWithCountSafe,
   buildUpdateQuerySafe,
-  buildDeleteQuerySafe
+  buildDeleteQuerySafe,
+  buildInsertOneQuerySafe,
+  buildInsertManyQuerySafe
 };

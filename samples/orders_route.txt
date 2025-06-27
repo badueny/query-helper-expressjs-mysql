@@ -2,8 +2,54 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../config/db');
-const { buildDynamicQueryWithCountSafe, buildUpdateQuerySafe, buildDeleteQuerySafe }
+const { buildDynamicQueryWithCountSafe, buildUpdateQuerySafe, buildDeleteQuerySafe, buildInsertOneQuerySafe, buildInsertManyQuerySafe }
       = require('../helpers/safeQueryBuilder');
+
+
+// Insert satu baris
+router.post('/orders/insert', async (req, res) => {
+  const allowedTables = ['orders'];
+  const allowedColumns = ['customer_id', 'total', 'status', 'created_at'];
+
+  try {
+    const { data } = req.body;
+
+    const { query, values } = buildInsertOneQuerySafe({
+      table: 'orders',
+      allowedTables,
+      allowedColumns,
+      data,
+      onDuplicate: ['total', 'status']
+    });
+
+    const [result] = await db.execute(query, values);
+    res.json({ success: true, insertedId: result.insertId });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Insert banyak baris
+router.post('/orders/insert-many', async (req, res) => {
+  const allowedTables = ['orders'];
+  const allowedColumns = ['customer_id', 'total', 'status', 'created_at'];
+
+  try {
+    const { rows } = req.body;
+
+    const { query, values } = buildInsertManyQuerySafe({
+      table: 'orders',
+      allowedTables,
+      allowedColumns,
+      rows
+    });
+
+    const [result] = await db.execute(query, values);
+    res.json({ success: true, affectedRows: result.affectedRows });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 /* GET /orders with JOIN multi-table, GROUP BY, HAVING, pagination */
 router.get('/', async (req, res) => {
